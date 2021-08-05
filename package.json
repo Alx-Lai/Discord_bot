@@ -1,0 +1,23 @@
+{
+  "name": "discordbot",
+  "version": "1.0.0",
+  "description": "DiscordBot",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "cheerio": "^1.0.0-rc.10",
+    "discord.js": "^12.5.3",
+    "dotenv": "^10.0.0",
+    "dotenv-defaults": "^2.0.2",
+    "ffmpeg-static": "^4.4.0",
+    "opusscript": "0.0.8",
+    "puppeteer": "^10.1.0",
+    "request": "^2.88.2",
+    "ytdl-core": "^4.9.0"
+  }
+}
