@@ -28,16 +28,7 @@ client.on('message', (msg) => {
         }
     })
     if(cmd_type == '-1')return
-    //const cmd = msg.content.substring(prefix[cmd_type].Value.length).split(' ')
-    //cmd[0] = cmd[0].toLowerCase()
     switch(cmd_type){
-        /*case 'getavatar':
-            const avatar = GetAvatar(msg)
-            if(avatar && avatar.files){
-                msg.channel.send(`${msg.author}`,GetAvatar(msg))
-            }
-            break
-        */
         case '1':
             MusicFunction(msg)
         default:
@@ -48,35 +39,67 @@ client.on('message', (msg) => {
 //#region musicFunction
 let MusicQueue = []
 let dispatcher
+let MusicStatus = 'NoMusic'
 let Connection
-const MusicFunction = (msg) => {
+const MusicFunction = async (msg) => {
     const cmd = msg.content.substring(prefix['1'].Value.length).split(' ')
     cmd[0] = cmd[0].toLowerCase()
     switch(cmd[0]){
         case 'play':
-            addMusic(msg, cmd);
-            break
-        case 'stop':
+            await addMusic(msg, cmd);
             break
         case 'pause':
+            if(dispatcher){
+                if(MusicStatus == 'Playing'){
+                    await dispatcher.pause()
+                    MusicStatus = 'Pause'
+                }else{
+                    msg.channel.send('Invalid:Cannot pause now')
+                }
+            }else{
+                msg.channel.send('Error:Dispatcher Not Defined')
+            }
             break
+        case 'resume':
+            if(dispatcher){
+                if(MusicStatus == 'Pause'){
+                    await dispatcher.resume()
+                    MusicStatus = 'Playing'
+                }else{
+                    msg.channel.send('Invalid:Cannot resume now')
+                }
+            }else{
+                msg.channel.send('Error:Dispatcher Not Defined')
+            }
         case 'replay':
-            replayMusic()
+            await replayMusic()
             break
         case 'nowplay':
-            showNowPlayMusic(msg.channel.id)
+            await showNowPlayMusic(msg.channel.id)
+            break
+        case 'lower':
+            if(!dispatcher){
+                msg.channel.send('Error:Dispatcher Not Defined')
+            }
+            dispatcher.setVolume(dispatcher.volume-0.1)
+            break
+        case 'higher':
+            if(!dispatcher){
+                msg.channel.send('Error:Dispatcher Not Defined')
+            }
+            dispatcher.setVolume(dispatcher.volume+0.1)
             break
         case 'queue':
-            showQueue(msg.channel.id)
+            await showQueue(msg.channel.id)
             break
         case 'skip':
-            if(dispatcher) dispatcher.end()
+            if(dispatcher)await dispatcher.end()
             break
         case 'disconnect':
-            disconnectMusic(msg.guild.id, msg.channel.id)
+            await disconnectMusic(msg.guild.id, msg.channel.id)
             break
         case 'search':
-            searchMusic(cmd)
+            await searchMusic(cmd)
             break
         case 'playfix':
             msg.member.voice.channel.join()
@@ -175,6 +198,7 @@ const playMusic = async (connection, guildID, channelID)=>{
         highWaterMark:26214400
     })
     dispatcher = connection.play(stream, streamOptions)
+    MusicStatus = 'Playing'
     dispatcher.on('finish', (finish)=>{
         if(MusicQueue.length > 0){
             MusicQueue.shift()
@@ -188,6 +212,8 @@ const disconnectMusic = (guildID, channelID) => {
     if(client.voice.connections.get(guildID)){
         MusicQueue = []
         client.voice.connections.get(guildID).disconnect()
+        MusicStatus = 'NoMusic'
+        dispatcher = undefined
         client.channels.fetch(channelID).then(channel=>channel.send('disconnect'))
     }
 }
@@ -228,15 +254,3 @@ const showNowPlayMusic= async (channelID)=>{
     }
 }
 //#endregion
-function GetAvatar(msg) {
-    try {
-        return {
-            files: [{
-                attachment: msg.author.displayAvatarURL(),
-                name: 'avatar.jpg'
-            }]
-        }
-    } catch (err) {
-        console.log(err);
-    }
-}
