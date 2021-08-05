@@ -49,28 +49,29 @@ const MusicFunction = async (msg) => {
             await addMusic(msg, cmd);
             break
         case 'pause':
-            if(dispatcher){
-                if(MusicStatus == 'Playing'){
-                    await dispatcher.pause()
-                    MusicStatus = 'Pause'
-                }else{
-                    msg.channel.send('Invalid:Cannot pause now')
-                }
+            if(!dispatcher){
+                raiseErrorEmbed(msg.channel.id, 'Dispatcher Not Defined')
+                break
+            }
+            if(MusicStatus == 'Playing'){
+                await dispatcher.pause()
+                MusicStatus = 'Pause'
             }else{
-                msg.channel.send('Error:Dispatcher Not Defined')
+                raiseErrorEmbed(msg.channel.id, 'Invalid:Cannot pause now')
             }
             break
         case 'resume':
-            if(dispatcher){
-                if(MusicStatus == 'Pause'){
-                    await dispatcher.resume()
-                    MusicStatus = 'Playing'
-                }else{
-                    msg.channel.send('Invalid:Cannot resume now')
-                }
-            }else{
-                msg.channel.send('Error:Dispatcher Not Defined')
+            if(!dispatcher){
+                raiseErrorEmbed(msg.channel.id, 'Dispatcher Not Defined')
+                break
             }
+            if(MusicStatus == 'Pause'){
+                await dispatcher.resume()
+                MusicStatus = 'Playing'
+            }else{
+                raiseErrorEmbed(msg.channel.id, 'Invalid:Cannot resume now')
+            }
+            break
         case 'replay':
             await replayMusic()
             break
@@ -79,13 +80,15 @@ const MusicFunction = async (msg) => {
             break
         case 'lower':
             if(!dispatcher){
-                msg.channel.send('Error:Dispatcher Not Defined')
+                raiseErrorEmbed(msg.channel.id, 'Dispatcher Not Defined')
+                break
             }
             dispatcher.setVolume(dispatcher.volume-0.1)
             break
         case 'higher':
             if(!dispatcher){
-                msg.channel.send('Error:Dispatcher Not Defined')
+                raiseErrorEmbed(msg.channel.id, 'Dispatcher Not Defined')
+                break
             }
             dispatcher.setVolume(dispatcher.volume+0.1)
             break
@@ -110,7 +113,7 @@ const MusicFunction = async (msg) => {
                 playMusic(connection, guildID, channelID)
             })
             .catch(err => {
-                msg.reply('err when join voice channgel')
+                raiseErrorEmbed(msg.channel.id, 'Join Voice Channel failed')
             })
         default:
             msg.reply('Not a valid music command!')
@@ -121,11 +124,7 @@ const addMusic = async (msg, cmd) =>{
     let url = cmd[1];
     if(!url)return
     if(!msg.member.voice.channel){
-        const embed = new Discord.MessageEmbed()
-            .setColor('#0099ff')
-            .setTitle('addMusic Error')
-            .setDescription('[Not in Voice channel]')
-        msg.channel.send(embed)
+        raiseErrorEmbed(msg.channel.id, 'Not in Voice channel')
         return
     }
     if(url.substring(0,4) !=='http'){
@@ -135,13 +134,13 @@ const addMusic = async (msg, cmd) =>{
     }
     const validate = await ytdl.validateURL(url)
     if(!validate){
-        msg.reply('not a valid url')
+        raiseErrorEmbed(msg.channel.id, 'Not/Cannot Find valid url')
         return
     }
     msg.channel.send(`play ${url}`)
     const info = await ytdl.getInfo(url)
     if(!info.videoDetails){
-        msg.reply('not a valid url')
+        raiseErrorEmbed(msg.channel.id, 'Not/Cannot Find valid url')
         return
     }
     MusicQueue.push(url)
@@ -154,7 +153,7 @@ const addMusic = async (msg, cmd) =>{
             playMusic(connection, guildID, channelID)
         })
         .catch(err => {
-            msg.reply('err when join voice channgel')
+            raiseErrorEmbed(msg.channel.id, 'Join Voice Channel failed')
         })
     
 }
@@ -254,3 +253,11 @@ const showNowPlayMusic= async (channelID)=>{
     }
 }
 //#endregion
+const raiseErrorEmbed = (channelID, description)=>{
+    let embed = new Discord.MessageEmbed()
+        .setColor('ff0000')
+        .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+        .setTitle('Error')
+        .setDescription(description)
+    client.channels.fetch(channelID).then(channel => channel.send(embed))
+}
