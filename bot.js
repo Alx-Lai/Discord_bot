@@ -5,6 +5,7 @@ const prefix = require('./prefix.json')
 const ytdl = require('ytdl-core')
 const puppeteer = require('puppeteer')
 const cheerio = require('cheerio')
+const Commandlist = require('./commands.json')
 require('dotenv-defaults').config()
 //#endregion
 //#region login
@@ -30,7 +31,7 @@ client.on('message', (msg) => {
     if(cmd_type == '-1')return
     switch(cmd_type){
         case '1':
-            MusicFunction(msg)
+            ExecuteCommand(msg)
         default:
             break
     }   
@@ -41,7 +42,7 @@ let MusicQueue = []
 let dispatcher
 let MusicStatus = 'NoMusic'
 let Connection
-const MusicFunction = async (msg) => {
+const ExecuteCommand = async (msg) => {
     const cmd = msg.content.substring(prefix['1'].Value.length).split(' ')
     cmd[0] = cmd[0].toLowerCase()
     switch(cmd[0]){
@@ -115,6 +116,9 @@ const MusicFunction = async (msg) => {
             .catch(err => {
                 raiseErrorEmbed(msg.channel.id, 'Join Voice Channel failed')
             })
+        case 'help':
+            ListAllCommand(msg.channel.id, cmd)
+            break
         default:
             msg.reply('Not a valid music command!')
             break
@@ -235,7 +239,7 @@ const showQueue = async (channelID)=>{
         client.channels.fetch(channelID).then(channel=> channel.send(message))
     }
 }
-const showNowPlayMusic= async (channelID)=>{
+const showNowPlayMusic = async (channelID)=>{
     if(!dispatcher)return
     if(MusicQueue.length > 0){
         const info = await ytdl.getInfo(MusicQueue[0])
@@ -252,12 +256,30 @@ const showNowPlayMusic= async (channelID)=>{
         client.channels.fetch(channelID).then(channel=> channel.send('Nothing is playing'))
     }
 }
-//#endregion
 const raiseErrorEmbed = (channelID, description)=>{
     let embed = new Discord.MessageEmbed()
-        .setColor('ff0000')
-        .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
-        .setTitle('Error')
-        .setDescription(description)
+    .setColor('ff0000')
+    .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+    .setTitle('Error')
+    .setDescription(description)
     client.channels.fetch(channelID).then(channel => channel.send(embed))
 }
+const ListAllCommand = (channelID, cmd)=>{
+    let embed = new Discord.MessageEmbed()
+    .setColor('#ffff33')
+    .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+    .setTitle('Command list')
+    if(!cmd[1]){
+        for(var i=0;i<Commandlist.length;i++){
+            embed.addField(Commandlist[i].name, Commandlist[i].description)
+        }
+    }else{
+        for(var i=0;i<Commandlist.length;i++){
+            if(Commandlist[i].name.search(cmd[1])!=-1 || Commandlist[i].usage.search(cmd[1])!=-1 || Commandlist[i].description.search(cmd[1])!=-1){
+                embed.addField(Commandlist[i].name, 'Usage:   '+Commandlist[i].usage+'\nDescription: '+Commandlist[i].description)
+            }
+        }
+    }
+    client.channels.fetch(channelID).then(channel => channel.send(embed))
+}
+//#endregion

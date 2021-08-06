@@ -1,0 +1,80 @@
+[
+    {
+        "name":"play",
+        "usage":"!play url/keyword",
+        "description":"Add a music to the queue"
+    },
+
+    {
+        "name":"pause",
+        "usage":"!pause",
+        "description":"pause the music"
+    },
+    
+    {
+        "name":"resume",
+        "usage":"!resume",
+        "description":"resume the music"
+    },
+    
+    {
+        "name":"replay",
+        "usage":"!replay",
+        "description":"replay the music playing now"
+    },
+    
+    {
+        "name":"nowplay",
+        "usage":"!nowplay",
+        "description":"show the song play now"
+    },
+    
+    {
+        "name":"lower",
+        "usage":"!lower",
+        "description":"lower the volume"
+    },
+    
+    {
+        "name":"higher",
+        "usage":"!higher",
+        "description":"higher the volume"
+    },
+    
+    {
+        "name":"queue",
+        "usage":"!queue",
+        "description":"show the queue of music playlist"
+    },
+    
+    {
+        "name":"skip",
+        "usage":"!skip",
+        "description":"skip this song"
+    },
+    
+    {
+        "name":"disconnect",
+        "usage":"!disconnect",
+        "description":"disconnect the bot"
+    },
+    
+    {
+        "name":"search",
+        "usage":"!search keyword",
+        "description":"search the keyword on youtube"
+    },
+    
+    {
+        "name":"playfix",
+        "usage":"!playfix",
+        "description":"if resume not work, try this"
+    },
+    
+    {
+        "name":"help",
+        "usage":"!help [keyword]",
+        "description":"show the command list"
+    }
+
+]
