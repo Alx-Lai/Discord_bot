@@ -41,7 +41,6 @@ client.on('message', (msg) => {
 let MusicQueue = []
 let dispatcher
 let MusicStatus = 'NoMusic'
-let Connection
 const ExecuteCommand = async (msg) => {
     const cmd = msg.content.substring(prefix['1'].Value.length).split(' ')
     cmd[0] = cmd[0].toLowerCase()
@@ -103,7 +102,8 @@ const ExecuteCommand = async (msg) => {
             await disconnectMusic(msg.guild.id, msg.channel.id)
             break
         case 'search':
-            await searchMusic(cmd)
+            let list = await searchMusic(cmd, returnAll=true)
+            ListSongEmbed(msg.channel.id, list, title='Search Results')
             break
         case 'playfix':
             msg.member.voice.channel.join()
@@ -116,6 +116,9 @@ const ExecuteCommand = async (msg) => {
             .catch(err => {
                 raiseErrorEmbed(msg.channel.id, 'Join Voice Channel failed')
             })
+        case 'lyric':
+            await showLyric(msg.channel.id)
+            break
         case 'help':
             ListAllCommand(msg.channel.id, cmd)
             break
@@ -161,7 +164,7 @@ const addMusic = async (msg, cmd) =>{
         })
     
 }
-const searchMusic = async (args)=>{
+const searchMusic = async (args, returnAll = false)=>{
     if(args.length < 2)return
     let querystring = args[1]
     for(var i=2;i<args.length;i++){
@@ -174,17 +177,55 @@ const searchMusic = async (args)=>{
     let url = 'https://www.youtube.com/results?search_query='+querystring
     await page.goto(url)
     const html = await page.content()
-    const results = parse(html)
+    const results = parseLink(html)
     await browser.close()
+    if(returnAll)return results
     return results[0]
 }
-function parse(html){
+function parseLink(html){
     const $ = cheerio.load(html)
     let results = []
     $('#contents ytd-video-renderer').each((i,link) =>{
         results.push('https://www.youtube.com' + $(link).find('#thumbnail').attr('href'))
     })
     return results
+}
+const showLyric = async (channelID)=>{
+    if(MusicQueue.length == 0){
+        raiseErrorEmbed(channelID, 'Nothing Playing Now')
+        return
+    }
+    const songName = await findSongName()
+    if(!songName){
+        raiseErrorEmbed(channelID, 'Cannot get song name')
+        return
+    }
+    console.log(songName)
+    let url = 'https://search.azlyrics.com/search.php?q='+songName
+    const browser = await puppeteer.launch({
+        args:['--no-sandbox']
+    })
+    const page = await browser.newPage()
+    await page.goto(url)
+    const html = await page.content()
+    const result = await parseLyrics(html)
+    await browser.close()
+    console.log(result)
+    return result
+    //document.getElementsByClassName('title style-scope ytd-video-primary-info-renderer')
+    //document.querySelectorAll("span[jsname='YS01Ge']")
+}
+const findSongName = async ()=>{
+   let info = await ytdl.getInfo(MusicQueue[0])
+   return info.videoDetails.media.song
+}
+const parseLyrics = async(html)=>{
+    const $ = cheerio.load(html)
+    let result = '';
+    $("span[jsname='YS01Ge']").each((i,lyrics)=>{
+        result += '\n'+ $(lyrics).attr('innerText')
+    })
+    return result
 }
 const playMusic = async (connection, guildID, channelID)=>{
     if(MusicQueue.length == 0)return
@@ -262,6 +303,16 @@ const raiseErrorEmbed = (channelID, description)=>{
     .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
     .setTitle('Error')
     .setDescription(description)
+    client.channels.fetch(channelID).then(channel => channel.send(embed))
+}
+const ListSongEmbed = (channelID, list, title='List')=>{
+    let embed = new Discord.MessageEmbed()
+        .setColor('#87ceeb')
+        .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+        .setTitle(title)
+    for(var i=0;i<list.length;i++){
+        embed.addField(`${i+1}.${list[i]}`, '_')
+    }
     client.channels.fetch(channelID).then(channel => channel.send(embed))
 }
 const ListAllCommand = (channelID, cmd)=>{
