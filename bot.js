@@ -117,7 +117,14 @@ const ExecuteCommand = async (msg) => {
                 raiseErrorEmbed(msg.channel.id, 'Join Voice Channel failed')
             })
         case 'lyric':
-            await showLyric(msg.channel.id)
+            let lyric = await showLyric(msg.channel.id)
+            msg.channel.send(
+                new Discord.MessageEmbed()
+                .setColor('#ffff33')
+                .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+                .setTitle('Lyric')
+                .setDescription(lyric)
+            )
             break
         case 'help':
             ListAllCommand(msg.channel.id, cmd)
@@ -201,7 +208,7 @@ const showLyric = async (channelID)=>{
         return
     }
     console.log(songName)
-    let url = 'https://search.azlyrics.com/search.php?q='+songName
+    let url = 'https://www.google.com.tw/search?q='+songName+'+lyrics'
     const browser = await puppeteer.launch({
         args:['--no-sandbox']
     })
@@ -210,7 +217,6 @@ const showLyric = async (channelID)=>{
     const html = await page.content()
     const result = await parseLyrics(html)
     await browser.close()
-    console.log(result)
     return result
     //document.getElementsByClassName('title style-scope ytd-video-primary-info-renderer')
     //document.querySelectorAll("span[jsname='YS01Ge']")
@@ -223,7 +229,10 @@ const parseLyrics = async(html)=>{
     const $ = cheerio.load(html)
     let result = '';
     $("span[jsname='YS01Ge']").each((i,lyrics)=>{
-        result += '\n'+ $(lyrics).attr('innerText')
+        let piece = $(lyrics).text()
+        if(piece != undefined){
+            result += '\n'+ piece
+        }
     })
     return result
 }
