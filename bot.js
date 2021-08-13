@@ -1,4 +1,3 @@
-//#region import 
 const Discord = require('discord.js')
 const client = new Discord.Client()
 const prefix = require('./prefix.json')
@@ -7,15 +6,19 @@ const puppeteer = require('puppeteer')
 const cheerio = require('cheerio')
 const Commandlist = require('./commands.json')
 require('dotenv-defaults').config()
-//#endregion
-//#region login
-client.login(process.env.BOT_KEY)
 
+
+/****************************/
+/***        Login         ***/
+/****************************/
+client.login(process.env.BOT_KEY)
 client.on('ready', ()=>{
     console.log(`Log in as ${client.user.tag}!`)
 })
-//#endregion
-//#region interact
+
+/****************************/
+/***       Interact       ***/
+/****************************/
 client.on('message', (msg) => {
     if(!msg.author) return
     if(msg.author.bot) return
@@ -36,76 +39,59 @@ client.on('message', (msg) => {
             break
     }   
 })
-//#endregion 
-//#region musicFunction
+
+/****************************/
+/***     MusicFunction    ***/
+/****************************/
 let MusicQueue = []
 let dispatcher
 let MusicStatus = 'NoMusic'
+
 const ExecuteCommand = async (msg) => {
     const cmd = msg.content.substring(prefix['1'].Value.length).split(' ')
     cmd[0] = cmd[0].toLowerCase()
+    
     switch(cmd[0]){
-        case 'play':
+        case 'play'://undone
             await addMusic(msg, cmd);
             break
-        case 'pause':
-            if(!dispatcher){
-                raiseErrorEmbed(msg.channel.id, 'Dispatcher Not Defined')
-                break
-            }
-            if(MusicStatus == 'Playing'){
-                await dispatcher.pause()
-                MusicStatus = 'Pause'
-            }else{
-                raiseErrorEmbed(msg.channel.id, 'Invalid:Cannot pause now')
-            }
+        case 'pause'://undone
             break
-        case 'resume':
-            if(!dispatcher){
-                raiseErrorEmbed(msg.channel.id, 'Dispatcher Not Defined')
-                break
-            }
-            if(MusicStatus == 'Pause'){
-                await dispatcher.resume()
-                MusicStatus = 'Playing'
-            }else{
-                raiseErrorEmbed(msg.channel.id, 'Invalid:Cannot resume now')
-            }
+        case 'resume'://undone
             break
-        case 'replay':
+        case 'replay'://undone
             await replayMusic()
             break
-        case 'nowplay':
+        case 'nowplay'://undone
             await showNowPlayMusic(msg.channel.id)
             break
-        case 'lower':
+        case 'lower'://undone
             if(!dispatcher){
                 raiseErrorEmbed(msg.channel.id, 'Dispatcher Not Defined')
                 break
             }
             dispatcher.setVolume(dispatcher.volume-0.1)
             break
-        case 'higher':
+        case 'higher'://undone
             if(!dispatcher){
                 raiseErrorEmbed(msg.channel.id, 'Dispatcher Not Defined')
                 break
             }
             dispatcher.setVolume(dispatcher.volume+0.1)
             break
-        case 'queue':
+        case 'queue'://undone
             await showQueue(msg.channel.id)
             break
-        case 'skip':
+        case 'skip'://undone
             if(dispatcher)await dispatcher.end()
             break
-        case 'disconnect':
+        case 'disconnect'://undone
             await disconnectMusic(msg.guild.id, msg.channel.id)
             break
-        case 'search':
+        case 'search'://undone
             let list = await searchMusic(cmd, returnAll=true)
-            ListSongEmbed(msg.channel.id, list, title='Search Results')
             break
-        case 'playfix':
+        case 'playfix'://undone
             msg.member.voice.channel.join()
             .then(connection => {
                 msg.reply('Here I am~')
@@ -116,7 +102,7 @@ const ExecuteCommand = async (msg) => {
             .catch(err => {
                 raiseErrorEmbed(msg.channel.id, 'Join Voice Channel failed')
             })
-        case 'lyric':
+        case 'lyric'://undone
             let lyric = await showLyric(msg.channel.id)
             msg.channel.send(
                 new Discord.MessageEmbed()
@@ -126,7 +112,7 @@ const ExecuteCommand = async (msg) => {
                 .setDescription(lyric)
             )
             break
-        case 'help':
+        case 'help'://undone
             ListAllCommand(msg.channel.id, cmd)
             break
         default:
@@ -134,44 +120,62 @@ const ExecuteCommand = async (msg) => {
             break
     }
 }
+
 const addMusic = async (msg, cmd) =>{
     let url = cmd[1];
     if(!url)return
     if(!msg.member.voice.channel){
-        raiseErrorEmbed(msg.channel.id, 'Not in Voice channel')
+        sendErrorMessage(msg.channel.id, 'Not in Voice channel')
         return
     }
+    let Botmessage = await msg.channel.send(
+        new Discord.MessageEmbed()
+        .setColor('#87ceeb')
+        .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+        .setTitle('Search Music...')
+        )
     if(url.substring(0,4) !=='http'){
-        url = await searchMusic(cmd)
-        if(!url)return
-        //msg.reply(`find ${url}`)
+        url = await searchOneMusic(cmd)
+        if(!url){
+            TurnErrorMessage(Botmessage, 'Search Music Failed')
+            return
+        }
     }
     const validate = await ytdl.validateURL(url)
     if(!validate){
-        raiseErrorEmbed(msg.channel.id, 'Not/Cannot Find valid url')
+        TurnErrorMessage(Botmessage, 'Not/Cannot Find valid url')
         return
     }
-    msg.channel.send(`play ${url}`)
+    let newEmbed = new Discord.MessageEmbed()
+                        .setColor('#87ceeb')
+                        .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+                        .setTitle(`play ${url}`)
+    Botmessage.edit(newEmbed)
     const info = await ytdl.getInfo(url)
     if(!info.videoDetails){
-        raiseErrorEmbed(msg.channel.id, 'Not/Cannot Find valid url')
+        TurnErrorMessage(Botmessage, 'Not/Cannot Find valid url')
         return
     }
     MusicQueue.push(url)
+    newEmbed = new Discord.MessageEmbed()
+                    .setColor('#ffff33')
+                    .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+                    .setTitle('Add '+url + '!')
+    Botmessage.edit(newEmbed)
     //join voice channel
     msg.member.voice.channel.join()
         .then(connection => {
-            msg.reply('Here I am~')
             const guildID = msg.guild.id
             const channelID = msg.channel.id
             playMusic(connection, guildID, channelID)
         })
         .catch(err => {
-            raiseErrorEmbed(msg.channel.id, 'Join Voice Channel failed')
+            TurnErrorMessage(Botmessage, 'Join Voice Channel failed')
         })
     
 }
-const searchMusic = async (args, returnAll = false)=>{
+
+const searchOneMusic = async (args)=>{
     if(args.length < 2)return
     let querystring = args[1]
     for(var i=2;i<args.length;i++){
@@ -186,9 +190,9 @@ const searchMusic = async (args, returnAll = false)=>{
     const html = await page.content()
     const results = parseLink(html)
     await browser.close()
-    if(returnAll)return results
     return results[0]
 }
+
 function parseLink(html){
     const $ = cheerio.load(html)
     let results = []
@@ -197,45 +201,7 @@ function parseLink(html){
     })
     return results
 }
-const showLyric = async (channelID)=>{
-    if(MusicQueue.length == 0){
-        raiseErrorEmbed(channelID, 'Nothing Playing Now')
-        return
-    }
-    const songName = await findSongName()
-    if(!songName){
-        raiseErrorEmbed(channelID, 'Cannot get song name')
-        return
-    }
-    console.log(songName)
-    let url = 'https://www.google.com.tw/search?q='+songName+'+lyrics'
-    const browser = await puppeteer.launch({
-        args:['--no-sandbox']
-    })
-    const page = await browser.newPage()
-    await page.goto(url)
-    const html = await page.content()
-    const result = await parseLyrics(html)
-    await browser.close()
-    return result
-    //document.getElementsByClassName('title style-scope ytd-video-primary-info-renderer')
-    //document.querySelectorAll("span[jsname='YS01Ge']")
-}
-const findSongName = async ()=>{
-   let info = await ytdl.getInfo(MusicQueue[0])
-   return info.videoDetails.media.song
-}
-const parseLyrics = async(html)=>{
-    const $ = cheerio.load(html)
-    let result = '';
-    $("span[jsname='YS01Ge']").each((i,lyrics)=>{
-        let piece = $(lyrics).text()
-        if(piece != undefined){
-            result += '\n'+ piece
-        }
-    })
-    return result
-}
+
 const playMusic = async (connection, guildID, channelID)=>{
     if(MusicQueue.length == 0)return
     const streamOptions = {
@@ -261,21 +227,28 @@ const playMusic = async (connection, guildID, channelID)=>{
         }
     })
 }
+
 const disconnectMusic = (guildID, channelID) => {
     if(client.voice.connections.get(guildID)){
         MusicQueue = []
         client.voice.connections.get(guildID).disconnect()
         MusicStatus = 'NoMusic'
         dispatcher = undefined
-        client.channels.fetch(channelID).then(channel=>channel.send('disconnect'))
+        let embed = new Discord.MessageEmbed()
+                        .setColor('ff0000')
+                        .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+                        .setTitle('Disconnect')
+        client.channels.fetch(channelID).then(channel=>channel.send(embed))
     }
 }
+
 const replayMusic = ()=>{
     if(MusicQueue.length > 0){
         MusicQueue.unshift(MusicQueue[0])
         if(dispatcher)dispatcher.end()
     }
 }
+
 const showQueue = async (channelID)=>{
     if(MusicQueue.length > 0){
         let info
@@ -286,9 +259,11 @@ const showQueue = async (channelID)=>{
             message += `\n${i+1}. ${title}`
         }
         message = message.substring(1)
-        client.channels.fetch(channelID).then(channel=> channel.send(message))
+        let embed = ListSongEmbed(MusicQueue, title='PlayList')
+        client.channels.fetch(channelID).then(channel=> channel.send(embed))
     }
 }
+
 const showNowPlayMusic = async (channelID)=>{
     if(!dispatcher)return
     if(MusicQueue.length > 0){
@@ -300,21 +275,22 @@ const showNowPlayMusic = async (channelID)=>{
         if(songLength[1].length < 2)songLength[1] = '0' + songLength[1]
         if(nowSongLength[0].length < 2)nowSongLength[0] = '0' + nowSongLength[0]
         if(nowSongLength[1].length < 2)nowSongLength[1] = '0' + nowSongLength[1]
-        const message = `${title}\n${nowSongLength[0]}:${nowSongLength[1]}/${songLength[0]}:${songLength[1]}`
-        client.channels.fetch(channelID).then(channel=> channel.send(message))
+        let embed = new Discord.MessageEmbed()
+        .setColor('#87ceeb')
+        .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+        .setTitle(title)
+        .setDescription(`${nowSongLength[0]}:${nowSongLength[1]}/${songLength[0]}:${songLength[1]}`)
+        client.channels.fetch(channelID).then(channel=> channel.send(embed))
     }else{
-        client.channels.fetch(channelID).then(channel=> channel.send('Nothing is playing'))
+        let embed = new Discord.MessageEmbed()
+        .setColor('#87ceeb')
+        .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+        .setTitle('Nothing is playing')
+        client.channels.fetch(channelID).then(channel=> channel.send(embed))
     }
 }
-const raiseErrorEmbed = (channelID, description)=>{
-    let embed = new Discord.MessageEmbed()
-    .setColor('ff0000')
-    .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
-    .setTitle('Error')
-    .setDescription(description)
-    client.channels.fetch(channelID).then(channel => channel.send(embed))
-}
-const ListSongEmbed = (channelID, list, title='List')=>{
+
+const ListSongEmbed = (list, title='List')=>{
     let embed = new Discord.MessageEmbed()
         .setColor('#87ceeb')
         .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
@@ -322,24 +298,23 @@ const ListSongEmbed = (channelID, list, title='List')=>{
     for(var i=0;i<list.length;i++){
         embed.addField(`${i+1}.${list[i]}`, '_')
     }
-    client.channels.fetch(channelID).then(channel => channel.send(embed))
+    return embed
 }
-const ListAllCommand = (channelID, cmd)=>{
+
+const sendErrorMessage = (channelID, description)=>{
     let embed = new Discord.MessageEmbed()
-    .setColor('#ffff33')
+    .setColor('ff0000')
     .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
-    .setTitle('Command list')
-    if(!cmd[1]){
-        for(var i=0;i<Commandlist.length;i++){
-            embed.addField(Commandlist[i].name, Commandlist[i].description)
-        }
-    }else{
-        for(var i=0;i<Commandlist.length;i++){
-            if(Commandlist[i].name.search(cmd[1])!=-1 || Commandlist[i].usage.search(cmd[1])!=-1 || Commandlist[i].description.search(cmd[1])!=-1){
-                embed.addField(Commandlist[i].name, 'Usage:   '+Commandlist[i].usage+'\nDescription: '+Commandlist[i].description)
-            }
-        }
-    }
+    .setTitle('Error')
+    .setDescription(description)
     client.channels.fetch(channelID).then(channel => channel.send(embed))
 }
-//#endregion
+
+const TurnErrorMessage = (msg, description)=>{
+    let embed = new Discord.MessageEmbed()
+    .setColor('ff0000')
+    .setAuthor(client.user.username, client.user.displayAvatarURL(), 'https://github.com/Alx-Lai/Discord_bot')
+    .setTitle('Error')
+    .setDescription(description)
+    msg.edit(embed)
+}
